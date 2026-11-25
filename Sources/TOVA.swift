@@ -53,6 +53,18 @@ final class Perception: NSObject, ObservableObject, ARSessionDelegate {
         speaker.stop()
     }
 
+    func sessionWasInterrupted(_ session: ARSession) {
+        guard running else { return }
+        stop()
+        status = "摄像头已暂停，可重新开启"
+    }
+
+    func session(_ session: ARSession, didFailWithError error: Error) {
+        guard running else { return }
+        stop()
+        status = "摄像头不可用，可重新开启"
+    }
+
     func say(_ text: String) {
         speaker.offer(text, priority: .requested)
     }
@@ -64,7 +76,7 @@ final class Perception: NSObject, ObservableObject, ARSessionDelegate {
         let token = generation
         let detail = level
         let buffer = frame.capturedImage
-        let depth = frame.sceneDepth?.depthMap
+        let depth = frame.sceneDepth
         analysis.async {
             let people = VNDetectHumanRectanglesRequest()
             let handler = VNImageRequestHandler(cvPixelBuffer: buffer, orientation: .right)
@@ -80,19 +92,11 @@ final class Perception: NSObject, ObservableObject, ARSessionDelegate {
                 if detail == "详细", let count = people.results?.filter({ $0.confidence > 0.7 }).count, count > 1 {
                     message += "。画面中共检测到约\(count)人"
                 }
-                var nearSurface = false
-                if let depth {
-                    CVPixelBufferLockBaseAddress(depth, .readOnly)
-                    defer { CVPixelBufferUnlockBaseAddress(depth, .readOnly) }
-                    if let base = CVPixelBufferGetBaseAddress(depth) {
-                        let row = base.advanced(by: CVPixelBufferGetHeight(depth)/2 * CVPixelBufferGetBytesPerRow(depth))
-                        let d = row.assumingMemoryBound(to: Float.self)[CVPixelBufferGetWidth(depth)/2]
-                        if d.isFinite && d > 0.2 && d < 5 {
-                            nearSurface = d < 0.65
-                            if nearSurface { message += "。镜头中央可能有近距离表面" }
-                            if detail != "简洁" { message += String(format: "。镜头中心测距约 %.1f 米", (d * 2).rounded()/2) }
-                        }
-                    }
+                let distance = depth?.centralDistance()
+                let nearSurface = distance.map { $0 < 0.65 } ?? false
+                if nearSurface { message += "。镜头中央可能有近距离表面" }
+                if let distance, detail != "简洁" {
+                    message += String(format: "。镜头中央表面约 %.1f 米", distance)
                 }
                 DispatchQueue.main.async {
                     self.analyzing = false
