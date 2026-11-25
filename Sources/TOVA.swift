@@ -9,6 +9,11 @@ final class Perception: NSObject, ObservableObject, ARSessionDelegate {
     @Published var running = false
     @Published var level = "标准"
     @Published var scene = "未知"
+    @Published var preview: CGImage?
+    @Published var updated: Date?
+    @Published var positions = [CGFloat]()
+    @Published var mode = "自动识别"
+    private let renderer = CIContext()
     private var evidence = SceneEvidence()
     private var analyzing = false
     let session = ARSession()
@@ -45,6 +50,9 @@ final class Perception: NSObject, ObservableObject, ARSessionDelegate {
     func stop() {
         generation = UUID()
         evidence = SceneEvidence()
+        preview = nil
+        updated = nil
+        positions = []
         scene = "未知"
         session.pause()
         running = false
@@ -84,6 +92,9 @@ final class Perception: NSObject, ObservableObject, ARSessionDelegate {
                 let classifier = VNClassifyImageRequest()
                 try handler.perform([people, classifier])
                 let labels = classifier.results?.prefix(5).filter { $0.confidence >= 0.55 }.map(\.identifier) ?? []
+                let centers = people.results?.filter { $0.confidence > 0.7 }.map { $0.boundingBox.midX } ?? []
+                let image = CIImage(cvPixelBuffer: buffer).oriented(.right).transformed(by: CGAffineTransform(scaleX: 0.3, y: 0.3))
+                let preview = self.renderer.createCGImage(image, from: image.extent)
                 let person = people.results?.filter { $0.confidence > 0.7 }.max { $0.confidence < $1.confidence }
                 var message = person.map {
                     let x = $0.boundingBox.midX
@@ -102,8 +113,12 @@ final class Perception: NSObject, ObservableObject, ARSessionDelegate {
                     self.analyzing = false
                     guard self.generation == token else { return }
                     let previousScene = self.scene
-                    self.scene = self.evidence.update(labels: labels)
-                    if self.scene != "未知", detail != "简洁" { message = "可能位于" + self.scene + "。" + message }
+                    self.preview = preview
+                    self.positions = centers
+                    self.updated = Date()
+                    let inferred = self.evidence.update(labels: labels)
+                    self.scene = self.mode == "自动识别" ? inferred : self.mode
+                    if self.scene != "未知", detail != "简洁" { message = (self.mode == "自动识别" ? "可能位于" : "手动模式：") + self.scene + "。" + message }
                     self.status = "摄像头采集中"
                     if self.observation != message {
                         self.observation = message
@@ -117,56 +132,3 @@ final class Perception: NSObject, ObservableObject, ARSessionDelegate {
     }
 }
 
-@main struct TOVAApp: App {
-    @ScaledMetric(relativeTo: .body) private var touchHeight = 48.0
-    @StateObject private var engine = Perception()
-    @StateObject private var voice = Voice()
-    @Environment(\.scenePhase) private var phase
-    var body: some Scene {
-        WindowGroup {
-            NavigationStack {
-                Form {
-                    Section("实时空间描述") {
-                        Text(engine.status).font(.headline)
-                        LabeledContent("场景", value: engine.scene)
-                        Text(engine.observation).font(.title2)
-                        Button(engine.running ? "关闭空间描述" : "开启空间描述") {
-                            if engine.running { engine.stop() } else { engine.start() }
-                        }.frame(minHeight: touchHeight)
-                            .accessibilityHint("控制后置摄像头和环境播报")
-                    }
-                    Section("语音待命") {
-                        Text(voice.status)
-                        Button(voice.enabled ? "退出语音待命" : "开启语音待命") {
-                            if voice.enabled { voice.stop() } else { voice.start() }
-                        }.frame(minHeight: touchHeight)
-                        Text("可以说「TOVA，开启空间描述」。").font(.footnote)
-                    }
-                    Section("播报") {
-                        SpeechStatus(output: engine.speaker)
-                        Picker("描述等级", selection: $engine.level) {
-                            ForEach(["简洁", "标准", "详细"], id: \.self) { Text($0) }
-                        }
-                        Button("重听当前描述") { engine.say(engine.observation) }.disabled(!engine.running)
-                    }
-                    Text("请将手机竖直佩戴在胸前，后置镜头朝外。方向以画面为准。").font(.body)
-                }.navigationTitle("TOVA")
-            }.onAppear {
-                voice.isSpeaking = { engine.speaker.speaking }
-                voice.execute = { command in
-                    switch command {
-                    case .start: engine.start()
-                    case .stop: engine.stop(); engine.say("空间描述已关闭")
-                    case .level(let level): engine.level = level
-                    case .exit: voice.stop()
-                    }
-                }
-            }.onChange(of: phase) { _, value in if value == .background { voice.stop(); engine.stop() } }
-        }
-    }
-}
-
-private struct SpeechStatus: View {
-    @ObservedObject var output: SpeechOutput
-    var body: some View { LabeledContent("语音输出", value: output.speaking ? "正在播报" : "待命") }
-}

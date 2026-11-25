@@ -21,7 +21,7 @@ final class SpeechOutput: NSObject, ObservableObject, AVSpeechSynthesizerDelegat
     }
 
     func offer(_ text: String, priority next: Priority) {
-        guard next != .background else { return }
+        guard UserDefaults.standard.object(forKey: "speech") as? Bool != false, next != .background else { return }
         if active != nil {
             if next.rawValue <= priority.rawValue {
                 if next.rawValue >= (pending?.1.rawValue ?? 0) { pending = (text, next) }
@@ -31,6 +31,8 @@ final class SpeechOutput: NSObject, ObservableObject, AVSpeechSynthesizerDelegat
         }
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = AVSpeechSynthesisVoice(language: "zh-CN")
+        utterance.rate = Float(UserDefaults.standard.object(forKey: "rate") as? Double ?? 0.5)
+        utterance.volume = Float(UserDefaults.standard.object(forKey: "volume") as? Double ?? 1)
         active = utterance
         priority = next
         speaking = true

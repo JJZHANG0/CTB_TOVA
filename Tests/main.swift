@@ -22,3 +22,8 @@ precondition(DepthEstimate.meters([0, .nan, .infinity, 1, 1]) == nil)
 precondition(DepthEstimate.meters([1, 1, 1, 1, 4]) == 1)
 precondition(DepthEstimate.meters([1, 2, 3, 4, 5]) == nil)
 print("4 depth assertions passed")
+for q in ["前方有什么", "左前方有什么", "右侧是什么", "附近有没有台阶", "详细描述一下这个空间", "重复上一条描述"] {
+    precondition(Command("TOVA，" + q + "？") == .ask(q))
+    precondition(Command(q) == nil)
+}
+print("12 query assertions passed")

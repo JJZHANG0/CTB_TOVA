@@ -226,7 +226,8 @@
 				<string>YES</string>
 				<key>INFOPLIST_KEY_NSMicrophoneUsageDescription</key><string>用于聆听空间描述命令。</string>
 <key>INFOPLIST_KEY_NSSpeechRecognitionUsageDescription</key><string>用于识别普通话控制命令。</string>
-<key>INFOPLIST_KEY_NSCameraUsageDescription</key>
+<key>ASSETCATALOG_COMPILER_APPICON_NAME</key><string>AppIcon</string>
+                <key>INFOPLIST_KEY_NSCameraUsageDescription</key>
 				<string>通过胸前摄像头描述环境</string>
 				<key>INFOPLIST_KEY_UIApplicationSceneManifest_Generation</key>
 				<string>YES</string>
@@ -237,7 +238,7 @@
 				<key>MARKETING_VERSION</key>
 				<string>0.1.0</string>
 				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
-				<string>com.jjzhang.tova.rebuild</string>
+				<string>com.tova.spatial</string>
 				<key>PRODUCT_NAME</key>
 				<string>$(TARGET_NAME)</string>
 				<key>SUPPORTED_PLATFORMS</key>
@@ -264,7 +265,8 @@
 				<string>YES</string>
 				<key>INFOPLIST_KEY_NSMicrophoneUsageDescription</key><string>用于聆听空间描述命令。</string>
 <key>INFOPLIST_KEY_NSSpeechRecognitionUsageDescription</key><string>用于识别普通话控制命令。</string>
-<key>INFOPLIST_KEY_NSCameraUsageDescription</key>
+<key>ASSETCATALOG_COMPILER_APPICON_NAME</key><string>AppIcon</string>
+                <key>INFOPLIST_KEY_NSCameraUsageDescription</key>
 				<string>通过胸前摄像头描述环境</string>
 				<key>INFOPLIST_KEY_UIApplicationSceneManifest_Generation</key>
 				<string>YES</string>
@@ -275,7 +277,7 @@
 				<key>MARKETING_VERSION</key>
 				<string>0.1.0</string>
 				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
-				<string>com.jjzhang.tova.rebuild</string>
+				<string>com.tova.spatial</string>
 				<key>PRODUCT_NAME</key>
 				<string>$(TARGET_NAME)</string>
 				<key>SUPPORTED_PLATFORMS</key>

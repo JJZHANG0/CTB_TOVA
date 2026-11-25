@@ -1,7 +1,7 @@
 import Foundation
 
 enum Command: Equatable {
-    case start, stop, exit, level(String)
+    case start, stop, exit, level(String), ask(String)
 
     init?(_ transcription: String) {
         let words = transcription.lowercased().components(separatedBy: CharacterSet.whitespacesAndNewlines.union(.punctuationCharacters)).joined()
@@ -13,6 +13,7 @@ enum Command: Equatable {
         case "切换简洁描述": self = .level("简洁")
         case "切换标准描述": self = .level("标准")
         case "切换详细描述": self = .level("详细")
+        case let query where ["前方有什么", "左前方有什么", "右侧是什么", "附近有没有台阶", "详细描述一下这个空间", "重复上一条描述"].contains(String(query)): self = .ask(String(query))
         default: return nil
         }
     }
