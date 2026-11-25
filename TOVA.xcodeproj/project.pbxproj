@@ -224,7 +224,9 @@
 				<string>1</string>
 				<key>GENERATE_INFOPLIST_FILE</key>
 				<string>YES</string>
-				<key>INFOPLIST_KEY_NSCameraUsageDescription</key>
+				<key>INFOPLIST_KEY_NSMicrophoneUsageDescription</key><string>用于聆听空间描述命令。</string>
+<key>INFOPLIST_KEY_NSSpeechRecognitionUsageDescription</key><string>用于识别普通话控制命令。</string>
+<key>INFOPLIST_KEY_NSCameraUsageDescription</key>
 				<string>通过胸前摄像头描述环境</string>
 				<key>INFOPLIST_KEY_UIApplicationSceneManifest_Generation</key>
 				<string>YES</string>
@@ -260,7 +262,9 @@
 				<string>1</string>
 				<key>GENERATE_INFOPLIST_FILE</key>
 				<string>YES</string>
-				<key>INFOPLIST_KEY_NSCameraUsageDescription</key>
+				<key>INFOPLIST_KEY_NSMicrophoneUsageDescription</key><string>用于聆听空间描述命令。</string>
+<key>INFOPLIST_KEY_NSSpeechRecognitionUsageDescription</key><string>用于识别普通话控制命令。</string>
+<key>INFOPLIST_KEY_NSCameraUsageDescription</key>
 				<string>通过胸前摄像头描述环境</string>
 				<key>INFOPLIST_KEY_UIApplicationSceneManifest_Generation</key>
 				<string>YES</string>

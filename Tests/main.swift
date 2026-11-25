@@ -1,0 +1,19 @@
+import Foundation
+let commands: [(String, Command)] = [
+    ("执行空间描述", .start), ("请你执行空间描述", .start), ("开启空间描述", .start),
+    ("关闭空间描述", .stop), ("退出语音待命", .exit), ("切换简洁描述", .level("简洁")),
+    ("切换标准描述", .level("标准")), ("切换详细描述", .level("详细"))
+]
+for (words, expected) in commands {
+    precondition(Command("TOVA，" + words) == expected)
+    precondition(Command("托瓦 " + words) == expected)
+    precondition(Command(words) == nil)
+    precondition(Command("TOVA，" + words + "是什么意思") == nil)
+}
+var scene = SceneEvidence()
+precondition(scene.update(labels: ["bedroom"]) == "未知")
+precondition(scene.update(labels: ["bedroom"]) == "室内")
+precondition(scene.update(labels: ["street"]) == "未知")
+precondition(scene.update(labels: ["street"]) == "室外")
+precondition(scene.update(labels: ["street", "bedroom"]) == "未知")
+print("37 command and scene assertions passed")
