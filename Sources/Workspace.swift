@@ -86,23 +86,54 @@ struct Workspace: View {
                     Spacer()
                     Button { tab = 2 } label: { Image(systemName: "gearshape").frame(width: 48,height: 48) }.accessibilityLabel("打开设置")
                 }
-                Text(paused ? "感知已暂停" : engine.status).font(.largeTitle.bold()).accessibilityAddTraits(.isHeader)
-                if let frame = engine.preview {
-                    Image(decorative: frame, scale: 1).resizable().scaledToFill().frame(maxWidth: .infinity).frame(height: 200).clipped().accessibilityHidden(true)
-                } else { FieldDiagram().frame(height: 170).accessibilityHidden(true) }
-                Button(engine.running ? "关闭空间描述" : paused ? "恢复空间描述" : "开始空间描述") {
-                    paused = false
-                    if engine.running { engine.stop(); engine.say("空间描述已关闭") } else { engine.start() }
-                }.buttonStyle(PrimaryAction())
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("环境感知").font(.largeTitle.bold())
+                    Text("听见镜头前的方向与距离。").font(.body).foregroundStyle(.secondary)
+                }
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack {
+                        Image(systemName: "viewfinder").font(.title2).accessibilityHidden(true)
+                        Spacer()
+                        Text(paused ? "已暂停" : engine.status).font(.subheadline.weight(.medium))
+                    }.foregroundStyle(.white)
+                    if let frame = engine.preview {
+                        Image(decorative: frame, scale: 1).resizable().scaledToFit().frame(maxWidth: .infinity, maxHeight: 180).accessibilityHidden(true)
+                    } else { FieldDiagram().frame(height: 102).accessibilityHidden(true) }
+                    Button {
+                        paused = false
+                        if engine.running { engine.stop(); engine.say("空间描述已关闭") } else { engine.start() }
+                    } label: {
+                        HStack {
+                            Image(systemName: engine.running ? "stop.fill" : "power")
+                            Text(engine.running ? "关闭空间描述" : paused ? "恢复空间描述" : "开始空间描述").font(.headline)
+                            Spacer()
+                            Image(systemName: "arrow.right")
+                        }.padding(.horizontal, 18).frame(minHeight: 52)
+                        .foregroundStyle(navy).background(.white, in: RoundedRectangle(cornerRadius: 13))
+                    }.buttonStyle(.plain)
+                }.padding(20).background(navy, in: RoundedRectangle(cornerRadius: 24))
                 if engine.running || paused {
                     Button(paused ? "结束本次感知" : "暂停感知") {
                         paused = !paused
                         engine.stop()
                     }.frame(minHeight: 44)
                 }
-                HStack { Text("语音待命"); Spacer(); Button(voice.enabled ? "退出聆听" : "开始聆听") { toggleVoice() } }.frame(minHeight: 44)
-                Text(voice.status).font(.subheadline)
-                Divider()
+                Button { toggleVoice() } label: {
+                    HStack(spacing: 14) {
+                        Image(systemName: voice.enabled ? "waveform" : "mic").font(.title2)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(voice.enabled ? "退出语音待命" : "开启语音待命").font(.headline)
+                            Text(voice.enabled ? voice.status : "说「托瓦，开启空间描述」").font(.subheadline)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right").font(.footnote)
+                    }.padding(16).background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 16))
+                }.buttonStyle(.plain)
+                Text("感知概况").font(.title2.bold()).accessibilityAddTraits(.isHeader)
+                HStack(alignment: .top, spacing: 12) {
+                    SummaryTile(icon: "square.3.layers.3d", label: "当前环境", value: engine.updated == nil ? "等待感知" : engine.scene)
+                    SummaryTile(icon: "person.crop.rectangle", label: "画面内行人", value: engine.updated == nil ? "暂无结果" : "约 " + String(engine.positions.count) + " 人")
+                }
                 Picker("场景模式", selection: $engine.mode) { ForEach(["自动识别","室内","室外"], id: \.self) { Text($0) } }.pickerStyle(.menu)
                 Text("描述等级").font(.headline)
                 Picker("描述等级", selection: $engine.level) { ForEach(levels,id: \.self) { Text($0) } }.pickerStyle(.segmented)
@@ -120,15 +151,22 @@ struct Workspace: View {
     func toggleVoice() { if voice.enabled { voice.stop() } else { voice.start() } }
     var records: some View {
         List {
-            if history.isEmpty { ContentUnavailableView("还没有记录", systemImage: "clock", description: Text("开启空间描述后，可在这里回顾本机保存的感知结果。")) }
+            if history.isEmpty { ContentUnavailableView("还没有记录", systemImage: "square.3.layers.3d", description: Text("开启空间描述后，可在这里回顾本机保存的感知结果。")) }
             ForEach(history) { entry in VStack(alignment: .leading, spacing: 8) {
                 Text(entry.time.formatted() + " · " + entry.scene).font(.subheadline)
                 Text(entry.message)
             } }.onDelete { offsets in var list = history; list.remove(atOffsets: offsets); save(list) }
-        }.navigationTitle("记录").toolbar { if !history.isEmpty { EditButton() } }
+        }.navigationTitle("感知记录").toolbar { if !history.isEmpty { EditButton() } }
     }
     var settings: some View {
         Form {
+            HStack(spacing: 16) {
+                Image(systemName: "viewfinder").font(.title).foregroundStyle(.white).frame(width: 56,height: 56).background(navy,in: RoundedRectangle(cornerRadius: 16))
+                VStack(alignment: .leading, spacing: 6) {
+                    Image("Wordmark").resizable().scaledToFit().frame(width: 88).accessibilityLabel("TOVA")
+                    Text("空间感知与语音偏好").font(.subheadline).foregroundStyle(.secondary)
+                }
+            }.padding(.vertical, 8)
             Section("语音与音频") {
                 Button(voice.enabled ? "退出语音待命" : "开启语音待命") { toggleVoice() }
                 Toggle("语音播报", isOn: $speech)
@@ -161,7 +199,7 @@ struct FieldDiagram: View {
             let w = size.width, h = size.height
             func line(_ a: CGPoint, _ b: CGPoint) {
                 var path = Path(); path.move(to: a); path.addLine(to: b)
-                context.stroke(path, with: .color(navy.opacity(0.24)), lineWidth: 1)
+                context.stroke(path, with: .color(Color(red: 0.60, green: 0.76, blue: 0.96).opacity(0.62)), lineWidth: 1)
             }
             for i in -5...5 {
                 let n = CGFloat(i)
@@ -171,6 +209,22 @@ struct FieldDiagram: View {
                 let spread = w*(0.14+0.33*t), y = h*(0.25+0.63*t)
                 line(CGPoint(x:w/2-spread,y:y),CGPoint(x:w/2+spread,y:y))
             }
-        }.background(Color(red: 0.96, green: 0.97, blue: 0.98), in: RoundedRectangle(cornerRadius: 16))
+        }
+    }
+}
+
+private struct SummaryTile: View {
+    let icon: String
+    let label: String
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Image(systemName: icon).accessibilityHidden(true)
+            Text(label).font(.subheadline).foregroundStyle(.secondary)
+            Text(value).font(.headline)
+        }.frame(maxWidth: .infinity, alignment: .leading).padding(16)
+        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 16))
+        .accessibilityElement(children: .combine)
     }
 }
