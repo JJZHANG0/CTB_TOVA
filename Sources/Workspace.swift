@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import Speech
 
 let navy = Color(red: 23/255, green: 39/255, blue: 68/255)
 struct PrimaryAction: ButtonStyle {
@@ -27,6 +28,7 @@ struct Workspace: View {
     @AppStorage("introduced") private var introduced = false
     @AppStorage("record") private var record = true
     @AppStorage("entries") private var entries = Data()
+    @AppStorage("automaticVoice") private var automaticVoice = true
     @AppStorage("speech") private var speech = true
     @AppStorage("rate") private var rate = 0.5
     @AppStorage("volume") private var volume = 1.0
@@ -67,16 +69,20 @@ struct Workspace: View {
                 case .start: paused = false; engine.start()
                 case .stop: paused = false; engine.stop(); engine.say("空间描述已关闭")
                 case .level(let level): engine.level = level
-                case .exit: voice.stop()
+                case .exit: automaticVoice = false; voice.stop()
                 case .ask(let text): answer(text)
                 }
             }
+            autoListen()
+        }.onChange(of: introduced) { _, done in if done { autoListen() } }
+        .onChange(of: voice.status) { _, status in
+            if introduced && !voice.enabled && status != "已关闭" { engine.say(status) }
         }.onChange(of: engine.observation) { _, value in
             if record && engine.running && engine.updated != nil {
                 save(Array(([Entry(id: UUID(), time: Date(), scene: engine.scene, message: value)] + history).prefix(300)))
             }
         }.onChange(of: speech) { _, enabled in if !enabled { engine.speaker.stop() } }
-        .onChange(of: phase) { _, value in if value == .background { voice.stop(); engine.stop(); paused = false } }
+        .onChange(of: phase) { _, value in if value == .background { voice.stop(); engine.stop(); paused = false } else if value == .active { autoListen() } }
     }
     var spatial: some View {
         ScrollView {
@@ -123,7 +129,7 @@ struct Workspace: View {
                         Image(systemName: voice.enabled ? "waveform" : "mic").font(.title2)
                         VStack(alignment: .leading, spacing: 4) {
                             Text(voice.enabled ? "退出语音待命" : "开启语音待命").font(.headline)
-                            Text(voice.enabled ? voice.status : "说「托瓦，开启空间描述」").font(.subheadline)
+                            Text(voice.enabled ? voice.status : "说「偷法」，听到回应后说指令").font(.subheadline)
                         }
                         Spacer()
                         Image(systemName: "chevron.right").font(.footnote)
@@ -148,7 +154,18 @@ struct Workspace: View {
             }.foregroundStyle(navy).padding(24)
         }
     }
-    func toggleVoice() { if voice.enabled { voice.stop() } else { voice.start() } }
+    func autoListen() {
+        guard introduced, automaticVoice, phase == .active, !voice.enabled else { return }
+        if SFSpeechRecognizer.authorizationStatus() == .authorized && AVAudioApplication.shared.recordPermission == .granted {
+            voice.start()
+        } else {
+            engine.say("语音待命需要麦克风和语音识别权限。请使用首页的开启语音待命按钮，或在系统设置中授权。")
+        }
+    }
+    func toggleVoice() {
+        automaticVoice = !voice.enabled
+        if voice.enabled { voice.stop() } else { voice.start() }
+    }
     var records: some View {
         List {
             if history.isEmpty { ContentUnavailableView("还没有记录", systemImage: "square.3.layers.3d", description: Text("开启空间描述后，可在这里回顾本机保存的感知结果。")) }

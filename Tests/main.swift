@@ -27,3 +27,9 @@ for q in ["前方有什么", "左前方有什么", "右侧是什么", "附近有
     precondition(Command(q) == nil)
 }
 print("12 query assertions passed")
+for wake in Command.wakeWords {
+    precondition(Command(wake + "，开启空间描述") == .start)
+    precondition(Command(wake) == nil)
+    precondition(Command("听说" + wake + "开启空间描述") == nil)
+}
+print("Wake variant checks passed")

@@ -4,6 +4,9 @@ import Speech
 
 struct Onboarding: View {
     @AppStorage("introduced") var introduced = false
+    @StateObject private var guide = GuideAudio()
+    @Environment(\.scenePhase) private var phase
+    @AccessibilityFocusState private var actionFocused: Bool
     @State private var step = 0
     @State private var requesting = false
     let titles = ["让你听见空间，理解周围。", "从胸前的视角感知", "允许摄像头访问", "用声音控制 TOVA", "授权普通话识别", "确认佩戴位置"]
@@ -20,7 +23,9 @@ struct Onboarding: View {
                 }.frame(maxWidth: .infinity, alignment: .leading)
             }.frame(maxHeight: 350)
             Spacer()
+            Button("重听本步说明") { guide.play(step) }.frame(minHeight: 44)
             Button(step == 5 ? "已确认，进入空间" : (2...4).contains(step) ? "请求权限" : "继续") {
+                guide.stop()
                 if (2...4).contains(step) {
                     requesting = true
                     Task {
@@ -35,8 +40,12 @@ struct Onboarding: View {
                         step += 1
                     }
                 } else if step == 5 { introduced = true } else { step += 1 }
-            }.buttonStyle(PrimaryAction()).disabled(requesting)
+            }.buttonStyle(PrimaryAction()).disabled(requesting).accessibilityFocused($actionFocused)
             if (2...4).contains(step) { Button("稍后设置") { step += 1 }.disabled(requesting).frame(minHeight: 44) }
         }.padding(24)
+        .onAppear { guide.play(step) }
+        .onChange(of: step) { _, next in actionFocused = true; guide.play(next) }
+        .onChange(of: phase) { _, value in if value == .background { guide.stop() } }
+        .onDisappear { guide.stop() }
     }
 }
